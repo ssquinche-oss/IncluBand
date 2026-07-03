@@ -1,0 +1,20 @@
+# Dependencias (¡Pesa muchísimo y se genera sola!)
+node_modules/
+
+# Producción (La carpeta dist que acabamos de ver)
+dist/
+dist-ssr/
+*.local
+
+# ARCHIVOS SECRETOS (¡Aquí van tus variables de entorno locales!)
+# Jamás los subas porque cualquiera podría robar tus credenciales
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos del sistema y de configuración del editor
+.DS_Store
+.vscode/
+.idea/
