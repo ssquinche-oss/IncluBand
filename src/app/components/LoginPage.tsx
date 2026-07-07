@@ -3,11 +3,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Watch, Eye, EyeOff, Activity } from "lucide-react";
+import { login } from "./api";
+
 
 interface LoginPageProps {
-  onLogin: (email: string) => void;
+  onLogin: (email: string, doctorId: number) => void;
   isDark: boolean;
 }
+
 
 export function LoginPage({ onLogin, isDark }: LoginPageProps) {
   const [email, setEmail] = useState("");
@@ -16,29 +19,30 @@ export function LoginPage({ onLogin, isDark }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("Por favor completa todos los campos.");
       return;
     }
-    if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
-      return;
-    }
     setError("");
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const result = await login(email, password);
+      onLogin(result.email, result.id);
+    } catch {
+      setError("Correo o contraseña incorrectos.");
+    } finally {
       setLoading(false);
-      onLogin(email);
-    }, 1000);
+    }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4"
       style={{ background: isDark ? "linear-gradient(135deg, #0a1628 0%, #0f2337 50%, #0a1e30 100%)" : "linear-gradient(135deg, #f0fdf9 0%, #ccfbf1 50%, #e0f2f1 100%)" }}>
 
-      {/* Decorative background circles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full opacity-20"
           style={{ background: "var(--primary)" }} />
@@ -49,14 +53,13 @@ export function LoginPage({ onLogin, isDark }: LoginPageProps) {
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Logo & Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4 shadow-lg"
             style={{ background: "var(--primary)" }}>
             <Watch className="w-10 h-10" style={{ color: "var(--primary-foreground)" }} />
           </div>
           <h1 className="text-3xl" style={{ color: "var(--foreground)" }}>
-            Nelpulsime
+            IncluBand
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
             Monitor wearable pediátrico
@@ -68,7 +71,6 @@ export function LoginPage({ onLogin, isDark }: LoginPageProps) {
           </div>
         </div>
 
-        {/* Card */}
         <div className="rounded-2xl shadow-2xl p-8 border"
           style={{ background: "var(--card)", borderColor: "var(--border)" }}>
           <h2 className="text-xl mb-1" style={{ color: "var(--foreground)" }}>Iniciar sesión</h2>
@@ -94,15 +96,11 @@ export function LoginPage({ onLogin, isDark }: LoginPageProps) {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Tu contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="rounded-xl h-11 pr-10"
-                  style={{
-                    background: "var(--input-background)",
-                    borderColor: password.length > 0 && password.length < 8 ? "#ef4444" : "var(--border)",
-                    color: "var(--foreground)",
-                  }}
+                  style={{ background: "var(--input-background)", borderColor: "var(--border)", color: "var(--foreground)" }}
                 />
                 <button
                   type="button"
@@ -112,26 +110,6 @@ export function LoginPage({ onLogin, isDark }: LoginPageProps) {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {/* Strength bar */}
-              {password.length > 0 && (
-                <div className="space-y-1">
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4].map((segment) => {
-                      const filled = password.length >= segment * 2;
-                      const color = password.length < 4 ? "#ef4444" : password.length < 6 ? "#f59e0b" : password.length < 8 ? "#f59e0b" : "#10b981";
-                      return (
-                        <div key={segment} className="flex-1 h-1 rounded-full transition-all"
-                          style={{ background: filled ? color : "var(--border)" }} />
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs" style={{
-                    color: password.length < 8 ? "#ef4444" : "#10b981"
-                  }}>
-                    {password.length < 4 ? "Muy débil" : password.length < 6 ? "Débil" : password.length < 8 ? `Faltan ${8 - password.length} caracteres` : "Contraseña válida ✓"}
-                  </p>
-                </div>
-              )}
             </div>
 
             {error && (
@@ -154,15 +132,10 @@ export function LoginPage({ onLogin, isDark }: LoginPageProps) {
               ) : "Ingresar"}
             </Button>
           </form>
-
-          <p className="text-center text-xs mt-4" style={{ color: "var(--muted-foreground)" }}>
-            ¿Olvidaste tu contraseña?{" "}
-            <span className="cursor-pointer" style={{ color: "var(--primary)" }}>Recuperar acceso</span>
-          </p>
         </div>
 
         <p className="text-center text-xs mt-4" style={{ color: "var(--muted-foreground)" }}>
-          © 2025 Nelpulsime · Monitoreo pediátrico wearable
+          © 2026 IncluBand · Monitoreo pediátrico wearable
         </p>
       </div>
     </div>

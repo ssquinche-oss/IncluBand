@@ -2,16 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { X, Camera, AlertCircle } from "lucide-react";
 
+
 interface QRScannerProps {
   onScan: (value: string) => void;
   onClose: () => void;
 }
+
 
 export function QRScanner({ onScan, onClose }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerId = "qr-scanner-container";
   const [error, setError] = useState("");
   const [scanning, setScanning] = useState(false);
+
 
   useEffect(() => {
     let mounted = true;
@@ -29,7 +32,6 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           return;
         }
 
-        // Prefer back camera
         const camera = cameras.find((c) => /back|rear|environment/i.test(c.label)) ?? cameras[0];
 
         await scanner.start(
@@ -37,13 +39,12 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           { fps: 10, qrbox: { width: 220, height: 220 } },
           (decodedText) => {
             if (!mounted) return;
-            // Extract device ID — accept raw value or extract from URL/JSON
             let deviceId = decodedText.trim();
             try {
               const parsed = JSON.parse(decodedText);
               if (parsed.deviceId) deviceId = parsed.deviceId;
             } catch {
-              // raw string, use as-is
+              // texto plano, se usa tal cual
             }
             onScan(deviceId);
             scanner.stop().catch(() => {});
@@ -69,12 +70,12 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     };
   }, []);
 
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
       <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b"
           style={{ borderColor: "var(--border)", background: "var(--primary)" }}>
           <div className="flex items-center gap-2">
@@ -89,16 +90,13 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Scanner viewport */}
           <div className="relative rounded-xl overflow-hidden"
             style={{ background: "#000", minHeight: 260 }}>
             <div id={containerId} className="w-full" />
 
-            {/* Overlay frame */}
             {scanning && !error && (
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div className="relative w-52 h-52">
-                  {/* Corner brackets */}
                   {[
                     "top-0 left-0 border-t-2 border-l-2 rounded-tl-lg",
                     "top-0 right-0 border-t-2 border-r-2 rounded-tr-lg",
@@ -108,14 +106,12 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
                     <span key={i} className={`absolute w-6 h-6 ${cls}`}
                       style={{ borderColor: "var(--primary)" }} />
                   ))}
-                  {/* Scan line animation */}
                   <div className="absolute left-0 right-0 h-0.5 animate-bounce"
                     style={{ background: "var(--primary)", top: "50%", opacity: 0.8 }} />
                 </div>
               </div>
             )}
 
-            {/* Loading state */}
             {!scanning && !error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"
                 style={{ background: "#000" }}>
@@ -126,7 +122,6 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
             )}
           </div>
 
-          {/* Error */}
           {error && (
             <div className="flex items-start gap-2 p-3 rounded-xl"
               style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>
@@ -136,7 +131,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           )}
 
           <p className="text-xs text-center" style={{ color: "var(--muted-foreground)" }}>
-            Apunta la cámara al código QR del reloj wearable Nelpulsime
+            Apunta la cámara al código QR del reloj wearable IncluBand
           </p>
 
           <button onClick={onClose}

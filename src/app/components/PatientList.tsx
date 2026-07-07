@@ -1,65 +1,64 @@
 import { useState } from "react";
-import { Patient, PATIENTS } from "./PatientData";
-import { Search, Plus, Filter, Heart, Activity, Thermometer } from "lucide-react";
+import { Patient } from "./patient.types";
+import { getPatientStatus, getEmotionalState, getCurrentPulse } from "./patientHelpers";
+import { Search, Plus, Heart } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { RegisterPatientDialog } from "./RegisterPatientDialog";
+import { createPatient } from "./api";
+
 
 interface PatientListProps {
+  patients: Patient[];
+  doctorId: number;
   onSelectPatient: (p: Patient) => void;
+  onPatientCreated: (p: Patient) => void;
   isDark: boolean;
 }
 
+
 const statusColors = {
-  stable: { bg: "rgba(16,185,129,0.15)", text: "#10b981", dot: "#10b981", label: "Estable" },
-  alert: { bg: "rgba(245,158,11,0.15)", text: "#f59e0b", dot: "#f59e0b", label: "Alerta" },
-  critical: { bg: "rgba(239,68,68,0.15)", text: "#ef4444", dot: "#ef4444", label: "Crítico" },
+  stable: { bg: "rgba(16,185,129,0.15)", text: "#10b981", label: "Estable" },
+  alert: { bg: "rgba(245,158,11,0.15)", text: "#f59e0b", label: "Alerta" },
+  critical: { bg: "rgba(239,68,68,0.15)", text: "#ef4444", label: "Crítico" },
 };
 
-export function PatientList({ onSelectPatient, isDark }: PatientListProps) {
-  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
+
+export function PatientList({ patients, doctorId, onSelectPatient, onPatientCreated, isDark }: PatientListProps) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "stable" | "alert" | "critical">("all");
   const [showRegister, setShowRegister] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [registerError, setRegisterError] = useState("");
   const pageSize = 5;
+
 
   const filtered = patients.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.deviceId.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filterStatus === "all" || p.status === filterStatus;
+      p.code.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filterStatus === "all" || getPatientStatus(p) === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const handleNewPatient = (data: Omit<Patient, "id" | "pulseHistory" | "stabilityHistory" | "movementHistory" | "episodes" | "lastSync">) => {
-    const newP: Patient = {
-      ...data,
-      id: String(patients.length + 1),
-      lastSync: "Ahora",
-      pulseHistory: Array.from({ length: 24 }, (_, i) => ({
-        time: `${String(i).padStart(2, "0")}:00`,
-        value: Math.round(data.pulse + (Math.random() * 20 - 10)),
-      })),
-      stabilityHistory: Array.from({ length: 24 }, (_, i) => ({
-        time: `${String(i).padStart(2, "0")}:00`,
-        value: Math.round(70 + (Math.random() * 30 - 15)),
-      })),
-      movementHistory: Array.from({ length: 12 }, (_, i) => ({
-        time: `${String(i * 2).padStart(2, "0")}:00`,
-        value: Math.round(50 + (Math.random() * 40 - 20)),
-      })),
-      episodes: [],
-    };
-    setPatients((prev) => [...prev, newP]);
-    setShowRegister(false);
+
+  const handleNewPatient = async (data: { name: string; birthYear: number; code: string }) => {
+    try {
+      setRegisterError("");
+      const newPatient = await createPatient({ ...data, doctorId });
+      onPatientCreated(newPatient);
+      setShowRegister(false);
+    } catch {
+      setRegisterError("No se pudo registrar el paciente. Verifica tu conexión con el servidor.");
+    }
   };
+
 
   return (
     <div className="flex-1 overflow-auto p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 style={{ color: "var(--foreground)" }}>Lista de pacientes</h1>
@@ -76,12 +75,18 @@ export function PatientList({ onSelectPatient, isDark }: PatientListProps) {
         </Button>
       </div>
 
-      {/* Search + filters */}
+      {registerError && (
+        <p className="text-sm text-center py-2 px-3 rounded-lg"
+          style={{ color: "#ef4444", background: "rgba(239,68,68,0.1)" }}>
+          {registerError}
+        </p>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
           <Input
-            placeholder="Buscar por nombre o dispositivo..."
+            placeholder="Buscar por nombre o código..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             className="pl-9 rounded-xl h-10"
@@ -108,34 +113,33 @@ export function PatientList({ onSelectPatient, isDark }: PatientListProps) {
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-2xl border overflow-hidden"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-        {/* Table header */}
         <div className="grid px-4 py-3 border-b"
-          style={{ borderColor: "var(--border)", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr 80px" }}>
-          {["Paciente", "Edad", "Dispositivo", "Pulso", "SpO₂", "Estado", ""].map((h) => (
+          style={{ borderColor: "var(--border)", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 80px" }}>
+          {["Paciente", "Edad", "Código", "Pulso", "Estado", ""].map((h) => (
             <span key={h} className="text-xs" style={{ color: "var(--muted-foreground)" }}>{h}</span>
           ))}
         </div>
 
-        {/* Rows */}
         {paginated.length === 0 ? (
           <div className="py-12 text-center" style={{ color: "var(--muted-foreground)" }}>
             No se encontraron pacientes
           </div>
         ) : paginated.map((p) => {
-          const sc = statusColors[p.status];
+          const status = getPatientStatus(p);
+          const sc = statusColors[status];
+          const age = new Date().getFullYear() - p.birthYear;
+          const pulse = getCurrentPulse(p);
           return (
             <div key={p.id}
               className="grid px-4 py-3.5 border-b last:border-b-0 cursor-pointer transition-all hover:opacity-80"
               style={{
                 borderColor: "var(--border)",
-                gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr 80px",
+                gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 80px",
                 background: "var(--card)",
               }}
               onClick={() => onSelectPatient(p)}>
-              {/* Name */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ background: sc.bg }}>
@@ -145,27 +149,17 @@ export function PatientList({ onSelectPatient, isDark }: PatientListProps) {
                 </div>
                 <span className="text-sm truncate" style={{ color: "var(--foreground)" }}>{p.name}</span>
               </div>
-              {/* Age */}
-              <span className="text-sm self-center" style={{ color: "var(--foreground)" }}>{p.age} años</span>
-              {/* Device */}
-              <span className="text-xs self-center" style={{ color: "var(--primary)" }}>{p.deviceId}</span>
-              {/* Pulse */}
+              <span className="text-sm self-center" style={{ color: "var(--foreground)" }}>{age} años</span>
+              <span className="text-xs self-center" style={{ color: "var(--primary)" }}>{p.code}</span>
               <div className="flex items-center gap-1 self-center">
                 <Heart className="w-3 h-3" style={{ color: "#ef4444" }} />
-                <span className="text-sm" style={{ color: "var(--foreground)" }}>{p.pulse}</span>
+                <span className="text-sm" style={{ color: "var(--foreground)" }}>{pulse ?? "--"}</span>
               </div>
-              {/* SpO2 */}
-              <div className="flex items-center gap-1 self-center">
-                <Activity className="w-3 h-3" style={{ color: "var(--primary)" }} />
-                <span className="text-sm" style={{ color: "var(--foreground)" }}>{p.spo2}%</span>
-              </div>
-              {/* Status */}
               <div className="self-center">
                 <span className="text-xs px-2 py-1 rounded-full" style={{ background: sc.bg, color: sc.text }}>
                   {sc.label}
                 </span>
               </div>
-              {/* Action */}
               <div className="self-center">
                 <button className="text-xs px-3 py-1 rounded-lg transition-all"
                   style={{ background: "var(--secondary)", color: "var(--secondary-foreground)" }}>
@@ -177,7 +171,6 @@ export function PatientList({ onSelectPatient, isDark }: PatientListProps) {
         })}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>

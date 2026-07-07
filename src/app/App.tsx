@@ -3,26 +3,30 @@ import { LoginPage } from "./components/LoginPage";
 import { Dashboard } from "./components/Dashboard";
 import { PatientList } from "./components/PatientList";
 import { PatientDetail } from "./components/PatientDetail";
-import { Patient } from "./components/PatientData";
+import { Patient } from "./components/patient.types";
+import { getPatients, getPatient } from "./components/api";
 import {
   LayoutDashboard, Users, Settings, LogOut, Watch,
-  Moon, Sun, ChevronLeft, ChevronRight, Activity, Menu, X
+  Moon, Sun, ChevronLeft, ChevronRight, Menu
 } from "lucide-react";
 
-/* MARKER-MAKE-KIT-INVOKED */
 
 type View = "dashboard" | "patients" | "settings";
+
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [doctorId, setDoctorId] = useState<number | null>(null);
   const [view, setView] = useState<View>("dashboard");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
 
-  // Apply dark class to root
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -31,24 +35,53 @@ export default function App() {
     }
   }, [isDark]);
 
-  const handleLogin = (email: string) => {
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    setLoadingPatients(true);
+    getPatients()
+      .then(setPatients)
+      .catch(() => setPatients([]))
+      .finally(() => setLoadingPatients(false));
+  }, [loggedIn]);
+
+
+  const handleLogin = (email: string, id: number) => {
     setUserEmail(email);
+    setDoctorId(id);
     setLoggedIn(true);
   };
+
 
   const handleLogout = () => {
     setLoggedIn(false);
     setUserEmail("");
+    setDoctorId(null);
     setView("dashboard");
     setSelectedPatient(null);
+    setPatients([]);
   };
 
-  const handleSelectPatient = (p: Patient) => {
-    setSelectedPatient(p);
+
+  // Al abrir un paciente, pedimos su detalle completo (con relaciones) al backend
+  const handleSelectPatient = async (p: Patient) => {
     setMobileSidebarOpen(false);
+    try {
+      const full = await getPatient(p.id);
+      setSelectedPatient(full);
+    } catch {
+      setSelectedPatient(p); // si falla, mostramos al menos lo que ya teníamos
+    }
   };
+
 
   const handleBack = () => setSelectedPatient(null);
+
+
+  const handlePatientCreated = (p: Patient) => {
+    setPatients((prev) => [...prev, p]);
+  };
+
 
   const navItems = [
     { id: "dashboard" as View, icon: LayoutDashboard, label: "Panel principal" },
@@ -56,13 +89,14 @@ export default function App() {
     { id: "settings" as View, icon: Settings, label: "Configuración" },
   ];
 
+
   if (!loggedIn) {
     return <LoginPage onLogin={handleLogin} isDark={isDark} />;
   }
 
+
   const SidebarContent = () => (
     <>
-      {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b ${sidebarCollapsed ? "justify-center" : ""}`}
         style={{ borderColor: "var(--sidebar-border)" }}>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -80,7 +114,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map(({ id, icon: Icon, label }) => {
           const active = view === id && !selectedPatient;
@@ -100,9 +133,7 @@ export default function App() {
         })}
       </nav>
 
-      {/* Bottom */}
       <div className="px-3 pb-4 space-y-1 border-t pt-3" style={{ borderColor: "var(--sidebar-border)" }}>
-        {/* Theme toggle */}
         <button
           onClick={() => setIsDark(!isDark)}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${sidebarCollapsed ? "justify-center" : ""}`}
@@ -111,7 +142,6 @@ export default function App() {
           {!sidebarCollapsed && <span className="text-sm">{isDark ? "Modo claro" : "Modo oscuro"}</span>}
         </button>
 
-        {/* User */}
         {!sidebarCollapsed && (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
             style={{ background: "var(--sidebar-accent)" }}>
@@ -144,25 +174,23 @@ export default function App() {
     </>
   );
 
+
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: "var(--background)" }}>
-      {/* Mobile overlay */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden"
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setMobileSidebarOpen(false)} />
       )}
 
-      {/* Sidebar desktop */}
       <aside
-        className={`hidden lg:flex flex-col flex-shrink-0 relative transition-all duration-300 border-r`}
+        className="hidden lg:flex flex-col flex-shrink-0 relative transition-all duration-300 border-r"
         style={{
           width: sidebarCollapsed ? 64 : 220,
           background: "var(--sidebar)",
           borderColor: "var(--sidebar-border)",
         }}>
         <SidebarContent />
-        {/* Collapse toggle */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="absolute -right-3 top-16 w-6 h-6 rounded-full border flex items-center justify-center z-10 transition-all hover:opacity-80"
@@ -171,8 +199,7 @@ export default function App() {
         </button>
       </aside>
 
-      {/* Sidebar mobile */}
-      <aside className={`fixed left-0 top-0 h-full z-50 flex flex-col transition-transform duration-300 lg:hidden border-r`}
+      <aside className="fixed left-0 top-0 h-full z-50 flex flex-col transition-transform duration-300 lg:hidden border-r"
         style={{
           width: 240,
           background: "var(--sidebar)",
@@ -182,9 +209,7 @@ export default function App() {
         <SidebarContent />
       </aside>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile header */}
         <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b"
           style={{ background: "var(--sidebar)", borderColor: "var(--sidebar-border)" }}>
           <button onClick={() => setMobileSidebarOpen(true)}
@@ -202,14 +227,23 @@ export default function App() {
           </div>
         </div>
 
-        {/* View */}
         <div className="flex-1 flex overflow-hidden">
-          {selectedPatient ? (
+          {loadingPatients ? (
+            <div className="flex-1 flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
+              Cargando pacientes...
+            </div>
+          ) : selectedPatient ? (
             <PatientDetail patient={selectedPatient} onBack={handleBack} isDark={isDark} />
           ) : view === "dashboard" ? (
-            <Dashboard userName={userEmail} onSelectPatient={handleSelectPatient} isDark={isDark} />
+            <Dashboard userName={userEmail} patients={patients} onSelectPatient={handleSelectPatient} isDark={isDark} />
           ) : view === "patients" ? (
-            <PatientList onSelectPatient={handleSelectPatient} isDark={isDark} />
+            <PatientList
+              patients={patients}
+              doctorId={doctorId!}
+              onSelectPatient={handleSelectPatient}
+              onPatientCreated={handlePatientCreated}
+              isDark={isDark}
+            />
           ) : (
             <SettingsView isDark={isDark} toggleDark={() => setIsDark(!isDark)} userEmail={userEmail} />
           )}
@@ -219,6 +253,7 @@ export default function App() {
   );
 }
 
+
 function SettingsView({ isDark, toggleDark, userEmail }: { isDark: boolean; toggleDark: () => void; userEmail: string }) {
   return (
     <div className="flex-1 overflow-auto p-6 space-y-6">
@@ -227,7 +262,6 @@ function SettingsView({ isDark, toggleDark, userEmail }: { isDark: boolean; togg
         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Preferencias del sistema</p>
       </div>
 
-      {/* Theme */}
       <div className="rounded-2xl border p-5 space-y-4"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         <h3 style={{ color: "var(--foreground)" }}>Apariencia</h3>
@@ -262,7 +296,6 @@ function SettingsView({ isDark, toggleDark, userEmail }: { isDark: boolean; togg
         </div>
       </div>
 
-      {/* Account */}
       <div className="rounded-2xl border p-5 space-y-4"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         <h3 style={{ color: "var(--foreground)" }}>Cuenta</h3>
@@ -279,15 +312,12 @@ function SettingsView({ isDark, toggleDark, userEmail }: { isDark: boolean; togg
         </div>
       </div>
 
-      {/* Device info */}
       <div className="rounded-2xl border p-5 space-y-3"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         <h3 style={{ color: "var(--foreground)" }}>Sistema</h3>
         {[
           { label: "Versión del sistema", value: "IncluBand v2.4.1" },
-          { label: "Firmware dispositivo", value: "IB-FW 3.2.0" },
           { label: "Rango de edad soportado", value: "3 – 12 años" },
-          { label: "Protocolo de comunicación", value: "BLE 5.0 + WiFi" },
         ].map(({ label, value }) => (
           <div key={label} className="flex items-center justify-between py-2 border-b last:border-b-0"
             style={{ borderColor: "var(--border)" }}>
