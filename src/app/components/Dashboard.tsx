@@ -1,4 +1,4 @@
-import { Patient } from "./patient.types";
+import type { Patient } from "./patient.types";
 import { getPatientStatus, getEmotionalState, getCurrentPulse, getLatestDailyRecord } from "./patientHelpers";
 import { Activity, Heart, AlertTriangle, Users, TrendingUp } from "lucide-react";
 import { ResponsiveContainer, Tooltip, Area, AreaChart } from "recharts";

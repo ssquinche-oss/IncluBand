@@ -1,4 +1,4 @@
-import { Patient } from "./patient.types";
+import type { Patient } from "./patient.types";
 import { getPatientStatus, getEmotionalState, getCurrentPulse, getLatestDailyRecord, formatEpisodeType, formatDuration } from "./patientHelpers";
 import { ArrowLeft, Heart, AlertTriangle, Watch } from "lucide-react";
 import {

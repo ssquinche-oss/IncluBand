@@ -1,4 +1,4 @@
-import { Patient, DailyRecord } from "./patient.types";
+import type { Patient, DailyRecord } from "./patient.types";
 
 export function calculateAge(birthYear: number): number {
   return new Date().getFullYear() - birthYear;

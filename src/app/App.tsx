@@ -3,7 +3,7 @@ import { LoginPage } from "./components/LoginPage";
 import { Dashboard } from "./components/Dashboard";
 import { PatientList } from "./components/PatientList";
 import { PatientDetail } from "./components/PatientDetail";
-import { Patient } from "./components/patient.types";
+import type { Patient } from "./components/patient.types";
 import { getPatients, getPatient } from "./components/api";
 import {
   LayoutDashboard, Users, Settings, LogOut, Watch,

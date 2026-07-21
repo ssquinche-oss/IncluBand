@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Patient } from "./patient.types";
+import type { Patient } from "./patient.types";
 import { getPatientStatus, getEmotionalState, getCurrentPulse } from "./patientHelpers";
 import { Search, Plus, Heart } from "lucide-react";
 import { Button } from "./ui/button";
