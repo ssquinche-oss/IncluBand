@@ -312,17 +312,20 @@ function SettingsView({ isDark, toggleDark, userEmail }: { isDark: boolean; togg
         </div>
       </div>
 
+      {/* Team */}
       <div className="rounded-2xl border p-5 space-y-3"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-        <h3 style={{ color: "var(--foreground)" }}>Sistema</h3>
+        <h3 style={{ color: "var(--foreground)" }}>Equipo de trabajo</h3>
         {[
-          { label: "Versión del sistema", value: "IncluBand v2.4.1" },
-          { label: "Rango de edad soportado", value: "3 – 12 años" },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex items-center justify-between py-2 border-b last:border-b-0"
+          { name: "Johanna Pesantez", role: "Scrum Master / Peticiones del Cliente" },
+          { name: "Josseline Granda", role: "Product Owner / Implementacion software/hardware" },
+          { name: "Samantha Quinche", role: "Diseñadora-Desarrolladora / UX/UI-Backend" },
+          { name: "Anthony Arevalo", role: "Documentador / Documentacion" },
+        ].map(({ name, role }) => (
+          <div key={name} className="flex items-center justify-between py-2 border-b last:border-b-0"
             style={{ borderColor: "var(--border)" }}>
-            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{label}</span>
-            <span className="text-xs" style={{ color: "var(--foreground)" }}>{value}</span>
+            <span className="text-xs" style={{ color: "var(--foreground)" }}>{name}</span>
+            <span className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>{role}</span>
           </div>
         ))}
       </div>
